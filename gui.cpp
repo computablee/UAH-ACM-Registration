@@ -32,6 +32,10 @@ std::vector<std::string> source;
 void start_gui(void)
 {
     initscr();
+    start_color();
+    init_pair(1, COLOR_WHITE, COLOR_BLACK);
+    init_pair(2, COLOR_CYAN, COLOR_BLACK);
+    init_pair(3, COLOR_BLUE, COLOR_BLACK);
     keypad(stdscr, TRUE);
     noecho();
 
@@ -140,16 +144,21 @@ void refresh_prompt() {
     mtx.lock();
     wclear(prompt);
     box(prompt, 0, 0);
-    for (int i = 0; i < 4; i++) {
+
+    for (int i = 0; i < 4; i++)
         mvwprintw(prompt, i + 1, 2, "%s", prompts[i].c_str());
-    }
+
+    wattron(prompt, COLOR_PAIR(3));
     int i = 14;
     for (std::string line : acm)
         mvwprintw(prompt, i++, 60, line.c_str());
 
+    wattron(prompt, COLOR_PAIR(2));
     i = 7;
     for (std::string line : uah)
         mvwprintw(prompt, i++, 5, line.c_str());
+
+    wattron(prompt, COLOR_PAIR(1));
     wrefresh(prompt);
     mtx.unlock();
 }
