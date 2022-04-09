@@ -51,6 +51,9 @@ void start_gui(void)
 
 void handle_prompt(WINDOW *win)
 {
+    std::ofstream outfile;
+    outfile.open("./students/students.txt", std::ios_base::app);
+
     (void)win;
     std::string curr_string[4] = { "", "", "", "" };
     int line = 0;
@@ -71,13 +74,19 @@ void handle_prompt(WINDOW *win)
         char c = wgetch(prompt);
         if (c == '\n' || c == '\t') {
             if (line == 3) {
-
+                outfile << curr_string[0] << "," << curr_string[1] << "," << curr_string[2] << "," << curr_string[3] << std::endl;
+                for (int i = 0; i < 4; i++)
+                    curr_string[i] = "";
+                line = 0;
+                col = 0;
+                curser_loc = { col + int(prompts[line].length()) + 2, line + 1 };
+                continue;
             }
             else {
                 line++;
-                col = 1;
+                col = 0;
 
-                curser_loc = { col + int(prompts[line].length()) + 1, line + 1 };
+                curser_loc = { col + int(prompts[line].length()) + 2, line + 1 };
                 mtx.lock();
                 wmove(prompt, curser_loc.y, curser_loc.x);
                 wrefresh(prompt);
