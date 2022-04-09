@@ -33,8 +33,7 @@ void start_gui(void)
 {
     initscr();
     keypad(stdscr, TRUE);
-
-    signal(SIGWINCH, resize_handler);
+    noecho();
 
     read_file(uah, "./images/uah logo.txt");
     read_file(acm, "./images/acm logo.txt");
@@ -53,16 +52,21 @@ void start_gui(void)
 void handle_prompt(WINDOW *win)
 {
     (void)win;
-    std::string curr_string;
+    std::string curr_string[4] = { "", "", "", "" };
     int line = 0;
     int col = 0;
     curser_loc = { col + int(prompts[line].length()) + 2, line + 1 };
 
     while (true) {
-        /*mtx.lock();
+        refresh_prompt();
+
+        mtx.lock();
+        for (int i = 0; i < 4; i++) {
+            mvwprintw(prompt, i + 1, int(prompts[i].length()) + 2, curr_string[i].c_str());
+        }
         wmove(prompt, curser_loc.y, curser_loc.x);
         wrefresh(prompt);
-        mtx.unlock();*/
+        mtx.unlock();
         
         char c = wgetch(prompt);
         if (c == '\n' || c == '\t') {
@@ -71,7 +75,7 @@ void handle_prompt(WINDOW *win)
             }
             else {
                 line++;
-                col = 0;
+                col = 1;
 
                 curser_loc = { col + int(prompts[line].length()) + 1, line + 1 };
                 mtx.lock();
@@ -80,9 +84,11 @@ void handle_prompt(WINDOW *win)
                 mtx.unlock();
             }
         }
-        curr_string += c;
-        col++;
-        curser_loc.x++;
+        else {
+            curr_string[line] += c;
+            col++;
+            curser_loc.x++;
+        }
     }
 }
 
