@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <mutex>
 #include "gui.h"
 
 std::string prompts[4] = { 
@@ -16,6 +17,13 @@ std::string prompts[4] = {
 
 WINDOW *prompt = NULL;
 WINDOW *code = NULL;
+
+struct {
+    int x;
+    int y;
+} curser_loc = { 0, 0 };
+
+std::mutex mtx;
 
 std::vector<std::string> uah;
 std::vector<std::string> acm;
@@ -45,8 +53,36 @@ void start_gui(void)
 void handle_prompt(WINDOW *win)
 {
     (void)win;
+    std::string curr_string;
+    int line = 0;
+    int col = 0;
+    curser_loc = { col + int(prompts[line].length()) + 2, line + 1 };
+
     while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        /*mtx.lock();
+        wmove(prompt, curser_loc.y, curser_loc.x);
+        wrefresh(prompt);
+        mtx.unlock();*/
+        
+        char c = wgetch(prompt);
+        if (c == '\n' || c == '\t') {
+            if (line == 3) {
+
+            }
+            else {
+                line++;
+                col = 0;
+
+                curser_loc = { col + int(prompts[line].length()) + 1, line + 1 };
+                mtx.lock();
+                wmove(prompt, curser_loc.y, curser_loc.x);
+                wrefresh(prompt);
+                mtx.unlock();
+            }
+        }
+        curr_string += c;
+        col++;
+        curser_loc.x++;
     }
 }
 
@@ -55,6 +91,7 @@ void handle_code(WINDOW *win)
     (void)win;
     int offset = 0;
     while (true) {
+        mtx.lock();
         wclear(code);
 
         for (int i = offset; i - offset < getmaxy(code) - 2; i++) {
@@ -69,17 +106,39 @@ void handle_code(WINDOW *win)
         wrefresh(code);
         offset++;
 
+        wmove(prompt, curser_loc.y, curser_loc.x);
+        wrefresh(prompt);
+        mtx.unlock();
+
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 
+void refresh_prompt() {
+    mtx.lock();
+    wclear(prompt);
+    box(prompt, 0, 0);
+    for (int i = 0; i < 4; i++) {
+        mvwprintw(prompt, i + 1, 2, "%s", prompts[i].c_str());
+    }
+    int i = 14;
+    for (std::string line : acm)
+        mvwprintw(prompt, i++, 60, line.c_str());
+
+    i = 7;
+    for (std::string line : uah)
+        mvwprintw(prompt, i++, 5, line.c_str());
+    wrefresh(prompt);
+    mtx.unlock();
+}
+
 void resize_handler(int sig)
 {
+    mtx.lock();
     (void)sig;
 
     int nh, nw;
     getmaxyx(stdscr, nh, nw);
-    fprintf(stderr, "%d, %d\n", nh, nw);
 
     int middle = nw / 3 * 2;
 
@@ -89,26 +148,13 @@ void resize_handler(int sig)
     prompt = newwin(nh, middle, 0, 0);
     code   = newwin(nh, nw - middle, 0, middle);
 
-    wclear(prompt);
-    box(prompt, 0, 0);
-
     wclear(code);
     box(code, 0, 0);
-    for (int i = 0; i < 4; i++)
-        mvwprintw(prompt, i + 1, 1, prompts[i].c_str());
-
-    int i = 14;
-    for (std::string line : acm)
-        mvwprintw(prompt, i++, 60, line.c_str());
-
-    i = 7;
-    for (std::string line : uah)
-        mvwprintw(prompt, i++, 5, line.c_str());
-
     touchwin(stdscr);
-
-    wrefresh(prompt);
     wrefresh(code);
+    mtx.unlock();
+
+    refresh_prompt();
 }
 
 void read_file(std::vector<std::string>& output, const char *filename) {
