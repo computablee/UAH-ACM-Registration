@@ -2,8 +2,8 @@ CC=clang++
 CFLAGS=-std=c++11 -Wall -Wextra -Werror -Wpedantic
 LFLAGS=-lncurses -lpthread
 
-all: main.o gui.o
-	$(CC) $(LFLAGS) main.o gui.o -o Application
+Application: main.o gui.o
+	$(CC) $(LFLAGS) $^ -o $@
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) $< -c -o $@
