@@ -84,6 +84,13 @@ void handle_prompt(WINDOW *win)
                 mtx.unlock();
             }
         }
+        else if (c == 127) {
+            if (col > 0) {
+                col--;
+                curser_loc.x--;
+                curr_string[line].erase(col, 1);
+            }
+        }
         else {
             curr_string[line] += c;
             col++;
